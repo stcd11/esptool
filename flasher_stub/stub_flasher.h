@@ -19,6 +19,13 @@
 #define STUB_FLASHER_H_
 
 enum stub_cmd {
+
+  /* Used to establish successful comms.
+	 Input: None
+	 Output: 4 bytes 0x4941484f ("OHAI")
+  */
+  CMD_PING = 0,
+
   /*
    * Erase a region of SPI flash.
    *
@@ -26,7 +33,7 @@ enum stub_cmd {
    * Input: None.
    * Output: None.
    */
-  CMD_FLASH_ERASE = 0,
+  CMD_FLASH_ERASE = 1,
 
   /*
    * Write to the SPI flash.
@@ -40,7 +47,7 @@ enum stub_cmd {
    *         Use this feedback to keep buffer above 1K but below 4K.
    *         Final packet will contain MD5 digest of the data written.
    */
-  CMD_FLASH_WRITE = 1,
+  CMD_FLASH_WRITE = 2,
 
   /*
    * Read from the SPI flash.
@@ -53,7 +60,7 @@ enum stub_cmd {
    * Note: No flow control is performed, it is assumed that the host can cope
    * with the inbound stream.
    */
-  CMD_FLASH_READ = 2,
+  CMD_FLASH_READ = 3,
 
   /*
    * Compute MD5 digest of the specified flash region.
@@ -65,7 +72,7 @@ enum stub_cmd {
    *         Otherwise, there will be a separate digest for each block,
    *         the remainder (if any) and the overall digest at the end.
    */
-  CMD_FLASH_DIGEST = 3,
+  CMD_FLASH_DIGEST = 4,
 
   /*
    * Read flash chip ID.
@@ -75,7 +82,7 @@ enum stub_cmd {
    * Input: None.
    * Output: 32 bit chip id (only 24 bits are meaningful).
    */
-  CMD_FLASH_READ_CHIP_ID = 4,
+  CMD_FLASH_READ_CHIP_ID = 5,
 
   /*
    * Zap the whole chip at once.
@@ -84,7 +91,7 @@ enum stub_cmd {
    * Input: None.
    * Output: None.
    */
-  CMD_FLASH_ERASE_CHIP = 5,
+  CMD_FLASH_ERASE_CHIP = 6,
 
   /*
    * Boots the firmware from flash.
@@ -93,7 +100,7 @@ enum stub_cmd {
    * Input: None.
    * Output: None.
    */
-  CMD_BOOT_FW = 6,
+  CMD_BOOT_FW = 7,
 
   /*
    * Reboot the CPU.
@@ -104,7 +111,7 @@ enum stub_cmd {
    * Input: None.
    * Output: None.
    */
-  CMD_REBOOT = 7,
+  CMD_REBOOT = 8,
 };
 
 #endif /* STUB_FLASHER_H_ */

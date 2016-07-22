@@ -242,6 +242,12 @@ uint8_t cmd_loop() {
     }
     uint8_t resp = 0xff;
     switch (cmd) {
+      case CMD_PING: {
+        uint32_t pong = 0x4941484f; /* OHAI */
+        SLIP_send(&pong, 4);
+        resp = 0;
+        break;
+      }
       case CMD_FLASH_ERASE: {
         len = SLIP_recv(args, sizeof(args));
         if (len == 8) {
@@ -304,7 +310,6 @@ uint8_t cmd_loop() {
 
 void stub_main() {
   uint32_t baud_rate = params[0];
-  uint32_t greeting = 0x4941484f; /* OHAI */
   uint8_t last_cmd;
 
   /* This points at us right now, reset for next boot. */
@@ -314,14 +319,11 @@ void stub_main() {
   SelectSpiFunction();
 
   if (baud_rate > 0) {
-    ets_delay_us(1000);
+    /* Be certain our UART has flushed the response sent back
+       after we loaded the stub into RAM. */
+    ets_delay_us(5000);
     uart_div_modify(0, UART_CLKDIV_26MHZ(baud_rate));
   }
-
-  /* Give host time to get ready too. */
-  ets_delay_us(10000);
-
-  SLIP_send(&greeting, 4);
 
   last_cmd = cmd_loop();
 
