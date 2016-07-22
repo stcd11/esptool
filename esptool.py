@@ -143,15 +143,18 @@ class ESPROM(object):
             self._port.timeout = 0.3
             for _ in xrange(4):
                 try:
-                    self._port.flushInput()
-                    self._slip_reader = slip_reader(self._port)
-                    self._port.flushOutput()
+                    self.flush_serial_connection()
                     self.sync()
                     self._port.timeout = 5
                     return
                 except:
                     time.sleep(0.05)
         raise FatalError('Failed to connect to ESP8266')
+
+    def flush_serial_connection(self):
+        self._port.flushInput()
+        self._slip_reader = slip_reader(self._port)
+        self._port.flushOutput()
 
     """ Read memory address in target """
     def read_reg(self, addr):
@@ -552,10 +555,11 @@ class ELFFile(object):
 class CesantaFlasher(object):
 
     # From stub_flasher.h
-    CMD_FLASH_WRITE = 1
-    CMD_FLASH_READ = 2
-    CMD_FLASH_DIGEST = 3
-    CMD_BOOT_FW = 6
+    CMD_PING = 0
+    CMD_FLASH_WRITE = 2
+    CMD_FLASH_READ = 3
+    CMD_FLASH_DIGEST = 4
+    CMD_BOOT_FW = 7
 
     def __init__(self, esp, baud_rate=0):
         print 'Running Cesanta flasher stub...'

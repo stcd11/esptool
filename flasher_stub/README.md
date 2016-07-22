@@ -13,7 +13,7 @@ Build the stub by running make, ie:
 ``` shell
 make SDK_PATH=/path/to/my/esp_iot_sdk_dir
 ```
-The build process produces a JSON-formatted binary stub, `build/stub_flasher.json`. This can be embedded into esptool.py or tested standalone (see below).
+The build process produces a JSON-formatted binary stub, `build/stub_flasher.json`. This can be tested standalone (see below). It also produces an equivalent `build/stub_flasher.json.py` which is preformatted as a Python string, ready to copy into esptool.py
 
 # Testing
 

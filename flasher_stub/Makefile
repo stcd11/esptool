@@ -50,10 +50,11 @@ BUILD_DIR = build
 
 STUB_ELF = $(BUILD_DIR)/$(patsubst %.c,%.elf,$(STUB))
 STUB_JSON = $(BUILD_DIR)/$(patsubst %.c,%.json,$(STUB))
+STUB_JSON_PY = $(STUB_JSON).py
 
 .PHONY: all clean
 
-all: $(STUB_JSON)
+all: $(STUB_JSON_PY)
 
 $(BUILD_DIR):
 	$(Q) mkdir $(BUILD_DIR)
@@ -67,6 +68,15 @@ $(STUB_ELF): $(STUB) $(LIBS) | $(BUILD_DIR)
 $(STUB_JSON): $(STUB_ELF) wrap_stub.py
 	@echo "  WRAP $< -> $@"
 	$(Q) $(WRAP_STUB) $< $@
+
+# Split the JSON into lines with Python
+# continuation characters, suitable to
+# copy-paste into esptool.py
+$(STUB_JSON_PY): $(STUB_JSON)
+	@echo " Python-ifying $< -> $@"
+	$(Q) echo '"""\' > $@
+	$(Q) sed -e 's/.\{80\}/\0\\\n/g' $< >> $@
+	$(Q) echo -e '\\\n"""' >> $@
 
 clean:
 	$(Q) rm -rf $(BUILD_DIR)
