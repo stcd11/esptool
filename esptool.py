@@ -641,12 +641,7 @@ class CesantaFlasher(object):
         print
         if digest != expected_digest:
             raise FatalError('Digest mismatch: expected %s, got %s' % (expected_digest, digest))
-        p = self._esp.read()
-        if len(p) != 1:
-            raise FatalError('Expected status, got: %s' % hexify(p))
-        status_code = struct.unpack('<B', p)[0]
-        if status_code != 0:
-            raise FatalError('Write failure, status: %x' % status_code)
+        self.check_status_code(self._esp.read(), "Write")
         return data
 
     def flash_digest(self, addr, length, digest_block_size=0):
@@ -658,9 +653,7 @@ class CesantaFlasher(object):
             if len(p) == 16:
                 digests.append(p)
             elif len(p) == 1:
-                status_code = struct.unpack('<B', p)[0]
-                if status_code != 0:
-                    raise FatalError('Write failure, status: %x' % status_code)
+                self.check_status_code(p, "Digest")
                 break
             else:
                 raise FatalError('Unexpected packet: %s' % hexify(p))
@@ -668,12 +661,14 @@ class CesantaFlasher(object):
 
     def boot_fw(self):
         self._esp.write(struct.pack('<B', self.CMD_BOOT_FW))
-        p = self._esp.read()
-        if len(p) != 1:
-            raise FatalError('Expected status, got: %s' % hexify(p))
-        status_code = struct.unpack('<B', p)[0]
+        self.check_status_code(self._esp.read(), "Boot")
+
+    def check_status_code(self, msg, operation):
+        if len(msg) != 1:
+            raise FatalError('Expected %s status, got: %s' % (operation, hexify(msg)))
+        status_code = struct.unpack('<B', msg)[0]
         if status_code != 0:
-            raise FatalError('Boot failure, status: %x' % status_code)
+            raise FatalError('%s failure, status: %x' % (operation, status_code))
 
 
 def slip_reader(port):
