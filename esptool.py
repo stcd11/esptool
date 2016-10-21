@@ -29,6 +29,11 @@ import time
 import base64
 import zlib
 
+if os.name == 'nt':
+    import serial.win32 as win32
+    import ctypes
+
+
 __version__ = "2.0-dev"
 
 
@@ -152,8 +157,12 @@ class ESPLoader(object):
         if isinstance(port, serial.Serial):
             self._port = port
         else:
-            self._port = serial.Serial(port)
+            self._port = serial.serial_for_url(port, do_not_open=True)
+            self._port.dtr = False
+            self._port.rts = False
+            self._port.open()
         self._slip_reader = slip_reader(self._port)
+
         # setting baud rate in a separate step is a workaround for
         # CH341 driver on some Linux versions (this opens at 9600 then
         # sets), shouldn't matter for other platforms/drivers. See
@@ -268,16 +277,11 @@ class ESPLoader(object):
         print 'Connecting...'
 
         for _ in xrange(10):
-            # issue reset-to-bootloader:
-            # RTS = either CH_PD or nRESET (both active low = chip in reset)
-            # DTR = GPIO0 (active low = boot to flasher)
-            self._port.setDTR(False)
-            self._port.setRTS(True)
+            self._set_control_lines(False, True)  # hold in reset
             time.sleep(0.05)
-            self._port.setDTR(True)
-            self._port.setRTS(False)
+            self._set_control_lines(True, False)  # out of reset, boot to bootloader
             time.sleep(0.05)
-            self._port.setDTR(False)
+            self._set_control_lines(False, False)  # normal operation
 
             self._port.timeout = 0.1
             last_exception = None
@@ -292,6 +296,30 @@ class ESPLoader(object):
                     last_exception = e
                     time.sleep(0.05)
         raise FatalError('Failed to connect to %s: %s' % (self.CHIP_NAME, last_exception))
+
+    def _set_control_lines(self, assert_dtr, assert_rts):
+        """
+        Set DTR & RTS control lines to reset or enter bootloader.
+
+        Wiring:
+        RTS = either CH_PD or nRESET on ESP8266, or EN on ESP32 (asserted/low = chip in reset)
+        DTR = GPIO0 (asserted/low = boot to serial bootloader)
+        """
+        if os.name == "nt" and hasattr(self._port, "_port_handle"):
+            # Workaround for a ~1-2ms delay seen on Windows (at least on CP2012) between setting DTR & RTS separately.
+            # Causes some ESP32 boards to not autoreset correctly, see https://github.com/themadinventor/esptool/issues/136
+            #
+            # Note this approach does not update pyserial's own internal port state.
+            comDCB = win32.DCB()
+            win32.GetCommState(self._port._port_handle, ctypes.byref(comDCB))
+            comDCB.fDtrControl = win32.DTR_CONTROL_ENABLE if assert_dtr else win32.DTR_CONTROL_DISABLE
+            comDCB.fRtsControl = win32.RTS_CONTROL_ENABLE if assert_rts else win32.RTS_CONTROL_DISABLE
+            win32.SetCommState(self._port._port_handle, ctypes.byref(comDCB))
+        else:
+            # Other OSes this delay is less (usually) so the autoreset usually works OK.
+            # Also, POSIX doesn't contain a mechanism for setting DTR & RTS in one call.
+            self._port.setDTR(assert_dtr)
+            self._port.setRTS(assert_rts)
 
     """ Read memory address in target """
     def read_reg(self, addr):
